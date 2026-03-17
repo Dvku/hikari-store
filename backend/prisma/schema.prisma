@@ -1,0 +1,103 @@
+// Configuración básica
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" 
+  url      = env("DATABASE_URL")
+}
+
+// 1. Usuarios y Roles
+enum Role {
+  ADMIN
+  STOCK
+}
+
+model User {
+  id       String @id @default(uuid())
+  username String @unique
+  password String
+  role     Role   @default(STOCK)
+}
+
+// 2. Productos y Packs
+model Product {
+  id          String     @id @default(uuid())
+  name        String
+  price_cost  Float      // Para calcular el ROI
+  price_sale  Float
+  // Para productos simples es stock real. Para Packs es stock virtual (calculado)
+  stock       Int        @default(0) 
+  min_stock   Int        @default(2) 
+  image_url   String?
+  is_pack     Boolean    @default(false)
+  
+  // 🚀 SOFT DELETE: Para no borrar historial de ventas
+  is_active   Boolean    @default(true) 
+
+  // Relaciones de Pack
+  pack_items    PackItem[] @relation("PackToComponent")
+  used_in_packs PackItem[] @relation("ComponentToPack")
+
+  // Relación con Ventas (ahora a través de OrderItem)
+  order_items OrderItem[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model PackItem {
+  id           String  @id @default(uuid())
+  pack_id      String       
+  pack         Product @relation("PackToComponent", fields: [pack_id], references: [id])
+  component_id String
+  component    Product @relation("ComponentToPack", fields: [component_id], references: [id])
+  quantity     Int     @default(1)
+
+  @@unique([pack_id, component_id])
+}
+
+// 3. Gestión de Ventas Multi-Producto
+enum OrderStatus {
+  PROCESO
+  ABONADO
+  PAGADO
+  ENTREGADO
+}
+
+enum DeliveryMethod {
+  SANTIAGO
+  REGION
+  METRO
+}
+
+model Order {
+  id              String         @id @default(uuid())
+  customer_name   String
+  social_handle   String         
+  social_platform String         
+  region          String
+  commune         String
+  status          OrderStatus    @default(PROCESO)
+  delivery_method DeliveryMethod
+  delivery_cost   Int            @default(0)
+  total_amount    Int            // Suma de todos los OrderItems + delivery_cost
+  
+  // Relación: Una orden puede tener muchos productos distintos
+  items           OrderItem[]
+  
+  created_at      DateTime       @default(now())
+}
+
+// 🛒 Tabla Intermedia: El "Carrito" de la compra
+model OrderItem {
+  id         String  @id @default(uuid())
+  order_id   String
+  product_id String
+  quantity   Int     @default(1)
+  price      Int     // Guardamos el precio del momento de la venta para reportes
+
+  order      Order   @relation(fields: [order_id], references: [id])
+  product    Product @relation(fields: [product_id], references: [id])
+}
