@@ -1,4 +1,5 @@
 # Hikari Store - Sistema de Gestión 
+**Vibecoding**
 
 Proyecto para la gestión de inventario y ventas de merchandising de One Direction.
 
