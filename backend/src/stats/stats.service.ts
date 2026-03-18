@@ -70,12 +70,25 @@ export class StatsService {
       return Math.round(((actual - anterior) / anterior) * 100);
     };
 
-    const topClientes = await this.prisma.order.groupBy({
-      by: ['customer_name'],
+    const topClientsRaw = await this.prisma.order.groupBy({
+      by: ['customer_name', 'social_handle', 'social_platform'],
       _sum: { total_amount: true },
       _count: { id: true },
-      orderBy: { _sum: { total_amount: 'desc' } },
-      take: 5,
+      where: { created_at: { gte: startDate, lte: endDate } },
+    });
+
+    const topClients = topClientsRaw.map((c) => {
+      const totalSpent = c._sum.total_amount || 0;
+      const orderCount = c._count.id || 0;
+
+      return {
+        name: c.customer_name,
+        handle: c.social_handle || '@sin_usuario',
+        platform: c.social_platform || 'RRSS',
+        totalSpent,
+        orderCount,
+        mixedScore: totalSpent / 10000 + orderCount,
+      };
     });
 
     return {
@@ -89,11 +102,7 @@ export class StatsService {
         gananciaProyectada,
         ticketPromedio,
       },
-      topClientes: topClientes.map((c) => ({
-        name: c.customer_name,
-        total: c._sum.total_amount,
-        orders: c._count.id,
-      })),
+      topClients,
       salesChart: this.prepareSalesChartData(orders),
       topProducts: this.prepareTopProductsData(orders),
       platformChart: this.preparePlatformData(orders),

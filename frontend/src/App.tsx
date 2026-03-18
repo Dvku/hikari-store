@@ -62,6 +62,8 @@ import {
   Pie,
 } from "recharts";
 import { CHILE_DATA } from "./data/chileData";
+import InstagramIcon from "@mui/icons-material/Instagram";
+import MovieIcon from "@mui/icons-material/Movie";
 
 const DELIVERY_METHODS = [
   { value: "METRO", label: "Entrega en Metro" },
@@ -142,13 +144,13 @@ interface DashboardData {
     ticketPromedio: number;
     pedidosTotales: number;
   };
+  topClients: ClientStats[];
   salesChart: { date: string; total: number }[];
   topProducts: { name: string; qty: number }[];
   platformChart: { name: string; value: number }[];
   deliveryChart: { name: string; value: number }[];
 }
 
-// 🎨 Nuevo Tema Claro y Limpio (Estilo SaaS / Dashboard)
 const modernTheme = createTheme({
   palette: {
     mode: "light",
@@ -1879,7 +1881,7 @@ const BusinessInsights = ({ stats }: { stats: DashboardData }) => {
       sx={{
         p: 3,
         borderRadius: "20px",
-        bgcolor: "rgba(67, 24, 255, 0.03)", // Un azul muy sutil
+        bgcolor: "rgba(67, 24, 255, 0.03)",
         border: "1px solid #E2E8F0",
       }}
     >
@@ -1943,6 +1945,173 @@ const BusinessInsights = ({ stats }: { stats: DashboardData }) => {
           />
         </ListItem>
       </List>
+    </Paper>
+  );
+};
+
+interface ClientStats {
+  name: string;
+  handle: string;
+  platform: string;
+  totalSpent: number;
+  orderCount: number;
+  mixedScore: number;
+}
+
+const TopClientsTable = ({ clients }: { clients: ClientStats[] }) => {
+  const [filter, setFilter] = useState<"spent" | "orders" | "mixed">("mixed");
+
+  const sortedClients = [...clients]
+    .sort((a, b) => {
+      if (filter === "spent") return b.totalSpent - a.totalSpent;
+      if (filter === "orders") return b.orderCount - a.orderCount;
+      return b.mixedScore - a.mixedScore;
+    })
+    .slice(0, 5);
+
+  const getRankContent = (index: number) => {
+    if (index === 0) return "🥇";
+    if (index === 1) return "🥈";
+    if (index === 2) return "🥉";
+    return index + 1;
+  };
+
+  return (
+    <Paper
+      sx={{
+        p: 3,
+        borderRadius: "20px",
+        height: "100%",
+        border: "1px solid #E2E8F0",
+        elevation: 0,
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          mb: 3,
+          alignItems: "center",
+        }}
+      >
+        <Typography variant="h6" sx={{ fontWeight: "bold", color: "#1B2559" }}>
+          Ranking de Clientes
+        </Typography>
+
+        <Select
+          size="small"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value as typeof filter)}
+          sx={{ borderRadius: "10px", fontSize: "0.8rem" }}
+        >
+          <MenuItem value="spent">Más Gasto (A)</MenuItem>
+          <MenuItem value="orders">Más Pedidos (B)</MenuItem>
+          <MenuItem value="mixed">Fidelidad (C)</MenuItem>
+        </Select>
+      </Box>
+
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              {/* Ajustamos el ancho del # para centrar todo */}
+              <TableCell
+                sx={{
+                  color: "#A3AED0",
+                  fontWeight: "bold",
+                  width: "60px",
+                  textAlign: "center",
+                }}
+              >
+                #
+              </TableCell>
+              <TableCell sx={{ color: "#A3AED0", fontWeight: "bold" }}>
+                CLIENTE
+              </TableCell>
+              <TableCell sx={{ color: "#A3AED0", fontWeight: "bold" }}>
+                USUARIO
+              </TableCell>
+              <TableCell sx={{ color: "#A3AED0", fontWeight: "bold" }}>
+                PLATAFORMA
+              </TableCell>
+              <TableCell
+                align="center"
+                sx={{ color: "#A3AED0", fontWeight: "bold" }}
+              >
+                PEDIDOS
+              </TableCell>
+              <TableCell
+                align="right"
+                sx={{ color: "#A3AED0", fontWeight: "bold" }}
+              >
+                TOTAL
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {sortedClients.map((client, index) => (
+              <TableRow key={index} hover>
+                <TableCell>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      fontWeight: "bold",
+                      fontSize: index > 2 ? "0.9rem" : "1.2rem",
+                      color: "#2B3674",
+                    }}
+                  >
+                    {getRankContent(index)}
+                  </Box>
+                </TableCell>
+
+                <TableCell sx={{ fontWeight: "bold", color: "#2B3674" }}>
+                  {client.name}
+                </TableCell>
+
+                <TableCell sx={{ color: "primary.main", fontWeight: 500 }}>
+                  <span style={{ opacity: 0.7 }}>@</span>{client.handle}
+                </TableCell>
+
+                <TableCell>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      color: "text.secondary",
+                    }}
+                  >
+                    {client.platform === "INSTAGRAM" && (
+                      <InstagramIcon sx={{ fontSize: "1.1rem" }} />
+                    )}
+                    {client.platform === "TIKTOK" && (
+                      <MovieIcon sx={{ fontSize: "1.1rem" }} />
+                    )}
+                    <Typography
+                      variant="caption"
+                      sx={{ fontWeight: "bold", textTransform: "capitalize" }}
+                    >
+                      {client.platform.toLowerCase()}
+                    </Typography>
+                  </Box>
+                </TableCell>
+
+                <TableCell align="center" sx={{ fontWeight: 500 }}>
+                  {client.orderCount}
+                </TableCell>
+
+                <TableCell
+                  align="right"
+                  sx={{ fontWeight: "bold", color: "#1B2559" }}
+                >
+                  ${client.totalSpent.toLocaleString("es-CL")}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Paper>
   );
 };
@@ -2206,7 +2375,7 @@ const DashboardView = ({
         <BusinessInsights stats={stats} />
       </Box>
 
-      {/* 📊 SECCIÓN DE GRÁFICOS */}
+      {/* SECCIÓN DE GRÁFICOS */}
       <Grid container spacing={4}>
         {/* Tendencia Lineal (8 columnas) */}
         <Grid size={{ xs: 12, md: 8 }}>
@@ -2241,7 +2410,7 @@ const DashboardView = ({
           </Paper>
         </Grid>
 
-        {/* Top Productos (4 columnas) */}
+        {/* Top Productos */}
         <Grid size={{ xs: 12, md: 4 }}>
           <Paper sx={{ p: 3, borderRadius: "20px", height: "400px" }}>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
@@ -2256,14 +2425,21 @@ const DashboardView = ({
                   width={130}
                   fontSize={12}
                 />
-                <Tooltip cursor={{ fill: "transparent" }} />
-                <Bar dataKey="qty" fill="#05CD99" radius={[0, 10, 10, 0]} />
+                <Tooltip 
+                  cursor={{ fill: "transparent" }}
+                  contentStyle={{ borderRadius: "10px", border: "none", boxShadow: "0px 4px 12px rgba(0,0,0,0.1)" }}
+                />
+                <Bar dataKey="qty" name="Cantidad Vendida" fill="#05CD99" radius={[0, 10, 10, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Paper>
         </Grid>
 
-        {/* 🚀 AQUÍ USAMOS EL CustomPieChart (Ya no dará error) */}
+        {/* NUEVA TABLA DE CLIENTES */}
+        <Grid size={{ xs: 12 }}>
+          <TopClientsTable clients={stats.topClients} />
+        </Grid>
+
         <Grid size={{ xs: 12, md: 6 }}>
           <CustomPieChart
             title="Ventas por Plataforma"
@@ -2303,7 +2479,7 @@ const InventoryView = ({
   onDelete,
   onToggle,
   onOpenPack,
-  onAdd, // 👈 Recibimos la función
+  onAdd,
 }: InventoryProps) => (
   <Box>
     {/* 📋 CABECERA: Buscador + Botón Nuevo */}
